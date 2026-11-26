@@ -1,4 +1,3 @@
-
 name: Build Minecraft Forge Mod
 
 on:
@@ -20,13 +19,28 @@ jobs:
           java-version: '21'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v4
 
       - name: Build Mod
-        run: chmod +x gradlew && ./gradlew build
+        run: |
+          if [ -f "gradlew" ]; then
+            MOD_DIR="."
+          elif [ -f "forge-mod/gradlew" ]; then
+            MOD_DIR="forge-mod"
+          elif [ -f "procedural-dark-worlds-1.21.1/gradlew" ]; then
+            MOD_DIR="procedural-dark-worlds-1.21.1"
+          else
+            echo "Could not find gradlew. Make sure gradlew and gradle/wrapper/ are uploaded."
+            exit 1
+          fi
+          echo "MOD_DIR=$MOD_DIR" >> "$GITHUB_ENV"
+          cd "$MOD_DIR"
+          chmod +x gradlew
+          ./gradlew build --no-daemon
 
       - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: Minecraft-Mod
-          path: build/libs/*.jar
+          path: ${{ env.MOD_DIR }}/build/libs/*.jar
+          if-no-files-found: error
